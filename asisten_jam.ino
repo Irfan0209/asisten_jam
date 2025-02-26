@@ -2,13 +2,26 @@
 #include <Wire.h> 
 #include <LiquidCrystal_I2C.h>
 #include "TimeLib.h"
+#include "OneButton.h"
 
+#define PIN_OK     2
+#define PIN_UP     3
+#define PIN_DOWN   4
+#define PIN_SELECT 5
+
+OneButton OK(PIN_OK, true);
+OneButton UP(PIN_UP, true);
+OneButton DOWN(PIN_DOWN, true);
+OneButton SELECT(PIN_SELECT, true);
+
+#define SLEEP_TIME 15000
 
 #define SCREEN_WIDTH 128 // OLED display width, in pixels
 #define SCREEN_HEIGHT 32 // OLED display height, in pixels
 #define OLED_RESET     -1 // Reset pin # (or -1 if sharing Arduino reset pin)
 #define ADDRESS_OLED  0x3C
 #define ADDRESS_LCD   0x27
+
 Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
 LiquidCrystal_I2C lcd(ADDRESS_LCD,16,2);  // set the LCD address to 0x27 for a 16 chars and 2 line display
 
@@ -17,12 +30,14 @@ LiquidCrystal_I2C lcd(ADDRESS_LCD,16,2);  // set the LCD address to 0x27 for a 1
 roboEyes roboEyes; // create eyes
 
 enum Mode{
+  MODE_BLANK,
   MODE_DEFAULT,
   MODE_SETTING,
   MODE_SETCLOCK,
-  MODE_SETDATE
+  MODE_SETDATE,
+  MODE_ALARM1
 }; 
-Mode mode = MODE_DEFAULT;
+Mode mode ;
 
 uint8_t jam;
 uint8_t menit;
@@ -38,6 +53,11 @@ uint8_t setMenit;
 uint8_t setDetik;
 
 uint16_t suhu = 100;
+
+char alarm1[8];
+char alarm2[8];
+
+bool sleepActive = false;
 
 byte alarmOn[8] = {
   B00100,
@@ -116,6 +136,10 @@ byte panah[8] = {
   B00000,
 };
 
+uint8_t cursorSelect = 0;
+uint8_t subLayer = 0;
+uint8_t currentLayer = 0;
+
 void setup() {
   Serial.begin(115200);
   lcd.init();   
@@ -141,36 +165,98 @@ void setup() {
   lcd.createChar(4, satu);
   lcd.createChar(5, dua);
   lcd.createChar(6, panah);
+
+  OK.attachClick(click_ok);
+  UP.attachClick(click_up);
+  DOWN.attachClick(click_down);
+  SELECT.attachClick(click_select);
 }
 
+uint8_t tampilan=1;
+//uint8_t select;
 
 void loop() {
   roboEyes.update(); // update eyes drawings
+  
+  
   roboEyes.setAutoblinker(ON, 3, 2); // Start auto blinker animation cycle -> bool active, int interval, int variation -> turn on/off, set interval between each blink in full seconds, set range for random interval variation in full seconds
   roboEyes.setIdleMode(ON, 2, 2); // Start idle animation cycle (eyes looking in random directions) -> turn on/off, set interval between each eye repositioning in full seconds, set range for random time interval variation in full seconds
   roboEyes.setCuriosity(ON);
-  
-  HOME();
+  //sleep();
 
+  switch(mode){
+    case MODE_DEFAULT :
+      
+      HOME();
+    break;
+
+    case MODE_SETTING :
+      SETTING();
+    break;
+
+    case MODE_ALARM1 :
+      ALARM1();
+    break;
+
+    case MODE_SETCLOCK :
+      SET_CLOCK();
+    break;
+
+    case MODE_BLANK :
+      lcd.clear();
+    break;
+  };
+
+  switch(tampilan){
+    case 0 :
+     // mode = MODE_BLANK;
+    break;
+    case 1 :
+      mode = MODE_DEFAULT;
+    break;
+
+    case 2 :
+      mode = MODE_SETTING;
+    break;
+  };
+
+//  switch(subLayer){
+//    case 0 :
+//      //mode = MODE_BLANK;
+//    break;
+//    case 1 :
+//      //lcd.clear();
+//      mode = MODE_SETCLOCK;
+//    break;
+//    case 2 :
+//      mode = MODE_ALARM1;
+//    break;
+//  };
+  
+  OK.tick();
+  UP.tick();
+  DOWN.tick();
+  SELECT.tick();
 }
-//static int textPosition = 0;
+
 void HOME(){
   const char *Hari[] = {"MINGGU","SENIN","SELASA","RABU","KAMIS","JUM'AT","SABTU"};
+  const char *pasar[] = {"WAGE", "KLIWON", "LEGI", "PAHING", "PON"}; 
   const char text[] = "00:00";
-  updateTime();
   static uint8_t counter;
-//  static uint32_t   lsRn;
-//  static bool state = false;
-//  uint32_t          Tmr = millis(); 
+  static bool state;
+  updateTime();
   
+  state = stateDay();
   
   char buff_jam[13];
   char buff_date[20];
 
-  snprintf(buff_jam,sizeof(buff_jam),(detik & 1)?"%02d:%02d %s":"%02d %02d %s",jam,menit, Hari[0]);
+  snprintf(buff_jam,sizeof(buff_jam),(detik & 1)?"%02d:%02d %s":"%02d %02d %s",jam,menit, (state)?Hari[hari+1]:pasar[jumlahhari() % 5]);
   snprintf(buff_date,sizeof(buff_date),"%02d-%02d-%04d" ,tanggal,bulan ,tahun);
 
  counter = textCount();
+ 
  switch(counter){
     case 0 :
      lcd.setCursor(0,1);
@@ -197,15 +283,10 @@ void HOME(){
   
   lcd.setCursor(0,0);
   lcd.print(buff_jam);
-  //lcd.print("|");
-
-//  lcd.setCursor(0,1);
-//  lcd.print(buff_date);
   
   lcd.setCursor(11,1);
   lcd.write(byte(3));
   lcd.print(suhu);
-  
   lcd.print("C");
 
   lcd.setCursor(13,0);
@@ -225,29 +306,69 @@ int textCount() {
   const uint32_t scrollInterval = 4000; // Waktu antar pergeseran (ms)
   static uint8_t last;
   
-  
   if (currentMillis - previousScrollMillis >= scrollInterval) {
     previousScrollMillis = currentMillis;
-
-    counter = (counter + 1) % 3;
     
+    counter = (counter + 1) % 3;
   }
-  if(counter != last){for(uint8_t i=0;i<11;i++){lcd.setCursor(i,1); lcd.print(" ");} last = counter;};
-  return counter;
   
+  if(counter != last){
+    for(uint8_t i=0;i<11;i++){
+      lcd.setCursor(i,1); 
+      lcd.print(" ");
+     } 
+    last = counter;
+   };
+  return counter;
+}
+
+int stateDay(){
+  uint16_t tmr = millis();
+  static uint16_t save = 0;
+  static uint16_t interval = 3000;
+  static bool state;
+  static bool last;
+
+  if((tmr - save) > interval){
+    save = tmr;
+    state = !state;
+  }
+
+  if(state != last){
+    for(uint8_t i=6;i<12;i++){
+      lcd.setCursor(i,0); 
+      lcd.print(" ");
+    } 
+    last = state;
+   }
+  return state;
 }
 
 
 void SETTING(){
-  
+     lcd.setCursor(15,cursorSelect ); 
+     lcd.write(byte(6));
+     lcd.setCursor(0,0);
+     lcd.print("menu 1");
+     lcd.setCursor(0,1);
+     lcd.print("menu 2");
+ 
 }
 
 void SET_CLOCK(){
-  
+  Serial.println(F("set clock active"));
+  lcd.setCursor(0,0);
+     lcd.print("clock 1");
 }
 
 void SET_DATE(){
   
+}
+
+void ALARM1(){
+  Serial.println(F("set alarm active"));
+  lcd.setCursor(0,0);
+     lcd.print("alarm 1");
 }
 
 void updateTime(){
@@ -261,3 +382,75 @@ void updateTime(){
 
   hari    = weekday();
 }
+
+void sleep(){
+ static uint32_t lastActivityTime;
+ static bool isSleeping = false;
+
+  // Cek apakah ada input tombol atau perubahan data
+  if (sleepActive == true) { 
+    //Serial.println(F("sleepActive active"));
+    lastActivityTime = millis(); // Reset timer
+    if (isSleeping) {
+      lcd.backlight(); // Nyalakan kembali backlight, tampilan tetap ada
+      isSleeping = false;
+      //Serial.println(F("isSleeping active"));
+    }
+    sleepActive=false;
+  }
+
+  // Cek apakah sudah waktunya tidur
+  if ((millis() - lastActivityTime) > SLEEP_TIME  && !isSleeping) {
+    lastActivityTime=0;
+    lcd.noBacklight(); // Hanya mematikan backlight, tidak menghapus tampilan
+    isSleeping = true;
+    //Serial.println(F("lcd sleep"));
+  }
+  
+}
+
+void click_ok(){
+  
+  if(mode == MODE_DEFAULT){tampilan=0; lcd.clear(); mode = MODE_SETTING;}//clearMenu();
+  else if(mode == MODE_SETTING && cursorSelect == 0){lcd.clear(); cursorSelect=0; subLayer = 1; mode = MODE_SETCLOCK;}
+  else if(mode == MODE_SETTING && cursorSelect == 1){lcd.clear(); cursorSelect=0; subLayer = 2; mode = MODE_ALARM1;}
+  Serial.println("mode:" + String(mode));
+}
+
+void click_up(){
+//  sleepActive=true;
+//  Serial.println(F("button active"));
+  if(mode == MODE_SETTING){ 
+    clearSelect();
+    if(cursorSelect>0){cursorSelect--;} }
+    Serial.println("cursorSelect:" + String(cursorSelect));
+}
+
+void click_down(){
+  if(mode == MODE_SETTING ){ 
+    clearSelect ();
+    if(cursorSelect<1){cursorSelect++;} }
+    Serial.println("cursorSelect:" + String(cursorSelect));
+}
+
+void click_select(){
+  
+}
+
+void clearChar(int charPosition, int line){
+  lcd.setCursor (charPosition,line);
+  lcd.print(" ");
+}
+void clearSelect(){
+  lcd.setCursor (15,0);
+  lcd.print("  ");
+  lcd.setCursor (15,1);
+  lcd.print("  ");
+}
+
+void clearMenu(){
+  for(int i=0;i<=16;i++){lcd.setCursor (i,0); lcd.print(" ");}
+  for(int i=0;i<=16;i++){lcd.setCursor (i,1); lcd.print(" ");}
+}
+
+ 
