@@ -34,7 +34,6 @@ enum Mode{
   MODE_DEFAULT,
   MODE_SETTING,
   MODE_SETCLOCK,
-  MODE_SETDATE,
   MODE_ALARM1
 }; 
 Mode mode ;
@@ -48,16 +47,25 @@ uint8_t tanggal;
 uint8_t bulan;
 uint16_t tahun;
 
-uint8_t setJam;
-uint8_t setMenit;
-uint8_t setDetik;
+uint8_t setTanggal;
+uint8_t setBulan;
+uint16_t setTahun=2000;
+
+uint8_t setJam=1;
+uint8_t setMenit=0;
+uint8_t setDetik=0;
 
 uint16_t suhu = 100;
 
-char alarm1[8];
-char alarm2[8];
+char Alarm1[]={"12:00:00"};
+char Clock[]={"11:00:00"};
+char Date[]={"00-00-2000"};
+
+char *textAlarm[]={"OFF","ON"};
 
 bool sleepActive = false;
+bool stateAlarm1 = false;
+//bool stateAlarm2 = false;
 
 byte alarmOn[8] = {
   B00100,
@@ -349,26 +357,107 @@ void SETTING(){
      lcd.setCursor(15,cursorSelect ); 
      lcd.write(byte(6));
      lcd.setCursor(0,0);
-     lcd.print("menu 1");
+     lcd.print("ATUR JAM");
      lcd.setCursor(0,1);
-     lcd.print("menu 2");
+     lcd.print("ATUR ALARM");
  
 }
 
 void SET_CLOCK(){
-  Serial.println(F("set clock active"));
+
+char stateSave[]={"save"};
+bool state = blinkText();
+
   lcd.setCursor(0,0);
-     lcd.print("clock 1");
+  lcd.print("SET CLOCK: ");
+
+if(cursorSelect==0){
+  lcd.setCursor(11,0);
+  if(blinkText()) lcd.print(setJam < 10 ? "0" + String(setJam) : String(setJam));
+  else lcd.print("  ");
+}else{
+  lcd.setCursor(11,0);
+  lcd.print(setJam < 10 ? "0" + String(setJam) : String(setJam));
 }
 
-void SET_DATE(){
+lcd.setCursor(13,0);
+lcd.print(":");
   
+if(cursorSelect==1){
+  lcd.setCursor(14,0);
+  if(state) lcd.print(setMenit<10?"0" + String(setMenit):String(setMenit));
+  else lcd.print("  ");
+}else{
+  lcd.setCursor(14,0);
+  lcd.print(setMenit<10?"0" + String(setMenit):String(setMenit));
+}
+
+if(cursorSelect==2){
+  lcd.setCursor(0,1);
+  if(state) lcd.print(setTanggal<10?"0" + String(setTanggal):String(setTanggal));
+  else lcd.print("  ");
+}else{
+  lcd.setCursor(0,1);
+  lcd.print(setTanggal<10?"0" + String(setTanggal):String(setTanggal));
+}
+
+  lcd.setCursor(2,1);
+  lcd.print("-");
+
+if(cursorSelect==3){
+  lcd.setCursor(3,1);
+  if(state) lcd.print(setBulan<10?"0" + String(setBulan):String(setBulan));
+  else lcd.print("  ");
+}else{
+  lcd.setCursor(3,1);
+  lcd.print(setBulan<10?"0" + String(setBulan):String(setBulan));
+}
+
+  lcd.setCursor(5,1);
+  lcd.print("-");
+
+if(cursorSelect==4){
+  lcd.setCursor(6,1);
+  if(state) lcd.print(setTahun);
+  else lcd.print("    ");
+}else{
+  lcd.setCursor(6,1);
+  lcd.print(setTahun<10?"0" + String(setTahun):String(setTahun));
+}
+
+if(cursorSelect==5){
+  lcd.setCursor(12,1);
+  if(state) lcd.print(stateSave);
+  else lcd.print("    ");
+}else{
+  lcd.setCursor(12,1);
+  lcd.print(stateSave);
+}
+
+}
+
+int blinkText(){
+  static uint32_t save;
+  static bool state = false;
+  //uint32_t tmr = millis();
+
+  if(millis() - save > 1000){
+    save = millis();
+    state = !state;
+  }
+  return state;
 }
 
 void ALARM1(){
   Serial.println(F("set alarm active"));
   lcd.setCursor(0,0);
-     lcd.print("alarm 1");
+  lcd.print("ALARM 1: ");
+  lcd.setCursor(13,0);
+  lcd.print(textAlarm[0]);
+  lcd.setCursor(0,1);
+  lcd.print(Alarm1);
+  lcd.setCursor(12,1);
+  lcd.print("save");
 }
 
 void updateTime(){
@@ -422,14 +511,23 @@ void click_up(){
 //  Serial.println(F("button active"));
   if(mode == MODE_SETTING){ 
     clearSelect();
-    if(cursorSelect>0){cursorSelect--;} }
+    if(cursorSelect>0){cursorSelect--;} 
+  }
+  if(mode == MODE_SETCLOCK){
+    if(cursorSelect>0){cursorSelect--;} 
+  }
     Serial.println("cursorSelect:" + String(cursorSelect));
 }
 
 void click_down(){
   if(mode == MODE_SETTING ){ 
     clearSelect ();
-    if(cursorSelect<1){cursorSelect++;} }
+    if(cursorSelect<1){cursorSelect++;} 
+  }
+
+  if(mode == MODE_SETCLOCK){
+    if(cursorSelect<6){cursorSelect++;} 
+  }
     Serial.println("cursorSelect:" + String(cursorSelect));
 }
 
