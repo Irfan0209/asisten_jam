@@ -34,7 +34,8 @@ enum Mode{
   MODE_DEFAULT,
   MODE_SETTING,
   MODE_SETCLOCK,
-  MODE_ALARM1
+  MODE_ALARM1,
+  MODE_TIMER
 }; 
 Mode mode ;
 
@@ -55,17 +56,23 @@ uint8_t setJam=1;
 uint8_t setMenit=0;
 uint8_t setDetik=0;
 
+uint8_t jamAlarm;
+uint8_t menitAlarm;
+uint8_t detikAlarm;
+
 uint16_t suhu = 100;
+
+uint16_t TIMER = 2000;
 
 char Alarm1[]={"12:00:00"};
 char Clock[]={"11:00:00"};
 char Date[]={"00-00-2000"};
 
-char *textAlarm[]={"OFF","ON"};
+char *textAlarm[]={"OFF","ON "};
 
 bool sleepActive = false;
 bool stateAlarm1 = false;
-//bool stateAlarm2 = false;
+bool stateTimer = false;
 
 byte alarmOn[8] = {
   B00100,
@@ -182,6 +189,7 @@ void setup() {
 
 uint8_t tampilan=1;
 //uint8_t select;
+bool flagSelect=false;
 
 void loop() {
   roboEyes.update(); // update eyes drawings
@@ -210,8 +218,8 @@ void loop() {
       SET_CLOCK();
     break;
 
-    case MODE_BLANK :
-      lcd.clear();
+    case MODE_TIMER :
+      SET_TIMER();
     break;
   };
 
@@ -354,12 +362,37 @@ int stateDay(){
 
 
 void SETTING(){
-     lcd.setCursor(15,cursorSelect ); 
-     lcd.write(byte(6));
-     lcd.setCursor(0,0);
-     lcd.print("ATUR JAM");
-     lcd.setCursor(0,1);
-     lcd.print("ATUR ALARM");
+//     lcd.setCursor(15,cursorSelect ); 
+//     lcd.write(byte(6));
+//     lcd.setCursor(0,0);
+//     lcd.print("ATUR JAM");
+//     lcd.setCursor(0,1);
+//     lcd.print("ATUR ALARM");
+     switch(cursorSelect){
+      case 0 :
+        lcd.setCursor(15,0 ); 
+        lcd.write(byte(6));
+        lcd.setCursor(0,0);
+        lcd.print("ATUR JAM");
+        lcd.setCursor(0,1);
+        lcd.print("ATUR ALARM");
+     break;
+     case 1 :
+        lcd.setCursor(15,1 ); 
+        lcd.write(byte(6));
+        lcd.setCursor(0,0);
+        lcd.print("ATUR JAM");
+        lcd.setCursor(0,1);
+        lcd.print("ATUR ALARM");
+     break;
+     case 2 :
+        lcd.setCursor(15,0 ); 
+        lcd.write(byte(6));
+        lcd.setCursor(0,0);
+        lcd.print("SET TIMER");
+       
+     break;
+     };
  
 }
 
@@ -371,7 +404,7 @@ bool state = blinkText();
   lcd.setCursor(0,0);
   lcd.print("SET CLOCK: ");
 
-if(cursorSelect==0){
+if(cursorSelect==0 ){
   lcd.setCursor(11,0);
   if(blinkText()) lcd.print(setJam < 10 ? "0" + String(setJam) : String(setJam));
   else lcd.print("  ");
@@ -383,7 +416,7 @@ if(cursorSelect==0){
 lcd.setCursor(13,0);
 lcd.print(":");
   
-if(cursorSelect==1){
+if(cursorSelect==1 ){
   lcd.setCursor(14,0);
   if(state) lcd.print(setMenit<10?"0" + String(setMenit):String(setMenit));
   else lcd.print("  ");
@@ -392,7 +425,7 @@ if(cursorSelect==1){
   lcd.print(setMenit<10?"0" + String(setMenit):String(setMenit));
 }
 
-if(cursorSelect==2){
+if(cursorSelect==2 ){
   lcd.setCursor(0,1);
   if(state) lcd.print(setTanggal<10?"0" + String(setTanggal):String(setTanggal));
   else lcd.print("  ");
@@ -404,7 +437,7 @@ if(cursorSelect==2){
   lcd.setCursor(2,1);
   lcd.print("-");
 
-if(cursorSelect==3){
+if(cursorSelect==3 ){
   lcd.setCursor(3,1);
   if(state) lcd.print(setBulan<10?"0" + String(setBulan):String(setBulan));
   else lcd.print("  ");
@@ -416,7 +449,7 @@ if(cursorSelect==3){
   lcd.setCursor(5,1);
   lcd.print("-");
 
-if(cursorSelect==4){
+if(cursorSelect==4 ){
   lcd.setCursor(6,1);
   if(state) lcd.print(setTahun);
   else lcd.print("    ");
@@ -425,14 +458,14 @@ if(cursorSelect==4){
   lcd.print(setTahun<10?"0" + String(setTahun):String(setTahun));
 }
 
-if(cursorSelect==5){
-  lcd.setCursor(12,1);
-  if(state) lcd.print(stateSave);
-  else lcd.print("    ");
-}else{
-  lcd.setCursor(12,1);
-  lcd.print(stateSave);
-}
+//if(cursorSelect==5 ){
+//  lcd.setCursor(12,1);
+//  if(state) lcd.print(stateSave);
+//  else lcd.print("    ");
+//}else{
+//  lcd.setCursor(12,1);
+//  lcd.print(stateSave);
+//}
 
 }
 
@@ -449,15 +482,84 @@ int blinkText(){
 }
 
 void ALARM1(){
+  bool state = blinkText();
+  
   Serial.println(F("set alarm active"));
   lcd.setCursor(0,0);
   lcd.print("ALARM 1: ");
+
+  if(cursorSelect==0 ){
   lcd.setCursor(13,0);
-  lcd.print(textAlarm[0]);
+  if(state) lcd.print(textAlarm[stateAlarm1]) ; 
+  else lcd.print("    ");
+  }else{
+  lcd.setCursor(13,0);
+  lcd.print(textAlarm[stateAlarm1]);
+  }
+  
+  
+  if(cursorSelect==1 ){
   lcd.setCursor(0,1);
-  lcd.print(Alarm1);
-  lcd.setCursor(12,1);
-  lcd.print("save");
+  if(state) lcd.print(jamAlarm<10?"0" + String(jamAlarm):String(jamAlarm));
+  else lcd.print("  ");
+  }else{
+  lcd.setCursor(0,1);
+  lcd.print(jamAlarm<10?"0" + String(jamAlarm):String(jamAlarm));
+  }
+
+  lcd.setCursor(2,1);
+  lcd.print(":");
+  
+  if(cursorSelect==2 ){
+  lcd.setCursor(3,1);
+  if(state) lcd.print(menitAlarm<10?"0" + String(menitAlarm):String(menitAlarm));
+  else lcd.print("  ");
+  }else{
+  lcd.setCursor(3,1);
+  lcd.print(menitAlarm<10?"0" + String(menitAlarm):String(menitAlarm));
+  }
+
+//  if(cursorSelect==3 ){
+//  lcd.setCursor(12,1);
+//  if(state) lcd.print("save");
+//  else lcd.print("    ");
+//  }else{
+//  lcd.setCursor(12,1);
+//  lcd.print("save");
+//  }
+
+//  lcd.setCursor(13,0);
+//  lcd.print(textAlarm[0]);
+//  lcd.setCursor(0,1);
+//  lcd.print(Alarm1);
+//  lcd.setCursor(12,1);
+//  lcd.print("save");
+}
+
+void SET_TIMER(){
+  bool state = blinkText();
+
+  lcd.setCursor(0,0);
+  lcd.print("SET TIMER: ");
+  
+  if(cursorSelect==0 ){
+  lcd.setCursor(13,0);
+  if(state) lcd.print(textAlarm[stateTimer]) ; 
+  else lcd.print("    ");
+  }else{
+  lcd.setCursor(13,0);
+  lcd.print(textAlarm[stateTimer]);
+  }
+
+  lcd.setCursor(0,1);
+  lcd.print("timer:");
+  if(cursorSelect==1 ){
+  if(state) lcd.print(TIMER) ; 
+  else lcd.print("    ");
+  }else{
+  //lcd.setCursor(0,1);
+  lcd.print(TIMER);
+  }
 }
 
 void updateTime(){
@@ -503,6 +605,10 @@ void click_ok(){
   if(mode == MODE_DEFAULT){tampilan=0; lcd.clear(); mode = MODE_SETTING;}//clearMenu();
   else if(mode == MODE_SETTING && cursorSelect == 0){lcd.clear(); cursorSelect=0; subLayer = 1; mode = MODE_SETCLOCK;}
   else if(mode == MODE_SETTING && cursorSelect == 1){lcd.clear(); cursorSelect=0; subLayer = 2; mode = MODE_ALARM1;}
+  else if(mode == MODE_SETTING && cursorSelect == 2){lcd.clear(); cursorSelect=0; subLayer = 3; mode = MODE_TIMER;}
+  else if(mode == MODE_SETCLOCK){ cursorSelect++; }//(cursorSelect+1) % 6; }
+  else if(mode == MODE_ALARM1){ cursorSelect++; }
+  //else if(mode == MODE_TIMER){ TIMER++; }
   Serial.println("mode:" + String(mode));
 }
 
@@ -510,29 +616,93 @@ void click_up(){
 //  sleepActive=true;
 //  Serial.println(F("button active"));
   if(mode == MODE_SETTING){ 
-    clearSelect();
-    if(cursorSelect>0){cursorSelect--;} 
-  }
-  if(mode == MODE_SETCLOCK){
-    if(cursorSelect>0){cursorSelect--;} 
-  }
+    //clearSelect();
+    if(cursorSelect>0){lcd.clear(); cursorSelect--;} 
     Serial.println("cursorSelect:" + String(cursorSelect));
+  }
+  //////mode set jam
+  if(mode == MODE_SETCLOCK  && cursorSelect == 0){
+    setJam = (setJam + 1) % 24; 
+  }
+  else if(mode == MODE_SETCLOCK  && cursorSelect == 1){
+    setMenit = (setMenit + 1) % 60;
+  }
+  else if(mode == MODE_SETCLOCK  && cursorSelect == 2){
+    (setTanggal > 31)? 1 : setTanggal++; 
+  }
+  else if(mode == MODE_SETCLOCK  && cursorSelect == 3){
+    (setBulan > 12)? 1 : setBulan++;
+  }
+  else if(mode == MODE_SETCLOCK  && cursorSelect == 4){
+    setTahun++; 
+  }
+
+  ///mode set alarm
+  if(mode == MODE_ALARM1  && cursorSelect == 0){
+    stateAlarm1 = true; 
+  }
+  else if(mode == MODE_ALARM1  && cursorSelect == 1){
+    jamAlarm = (jamAlarm + 1) % 24; 
+  }
+  else if(mode == MODE_ALARM1  && cursorSelect == 2){
+    menitAlarm = (menitAlarm + 1) % 60;
+  }
+
+  if(mode == MODE_TIMER){
+    TIMER++;
+  }
+
+    Serial.println(F("up active"));
 }
 
 void click_down(){
   if(mode == MODE_SETTING ){ 
-    clearSelect ();
-    if(cursorSelect<1){cursorSelect++;} 
+    //clearSelect ();
+    if(cursorSelect < 2){lcd.clear(); cursorSelect++;} 
+    
+    Serial.println("cursorSelect:" + String(cursorSelect));
   }
 
-  if(mode == MODE_SETCLOCK){
-    if(cursorSelect<6){cursorSelect++;} 
+  //mode set jam
+  if(mode == MODE_SETCLOCK  && cursorSelect == 0){
+    (setJam < 0)? 23 : setJam--;
   }
-    Serial.println("cursorSelect:" + String(cursorSelect));
+  else if(mode == MODE_SETCLOCK  && cursorSelect == 1){
+    (setMenit < 0)? 23 : setMenit--; 
+  }
+  else if(mode == MODE_SETCLOCK  && cursorSelect == 2){
+    (setTanggal < 1)? 31 : setTanggal--;
+  }
+  else if(mode == MODE_SETCLOCK  && cursorSelect == 3){
+    (setBulan < 1)? 11 : setBulan--;
+  }
+  else if(mode == MODE_SETCLOCK  && cursorSelect == 4){
+    (setTahun < 2000)? 2050 : setTahun--;
+  }
+
+  //mode set alarm
+  if(mode == MODE_ALARM1  && cursorSelect == 0){
+    stateAlarm1 = true; 
+  }
+  else if(mode == MODE_ALARM1  && cursorSelect == 1){
+    (jamAlarm < 0)? 23 : jamAlarm--;
+  }
+  else if(mode == MODE_ALARM1  && cursorSelect == 2){
+    (menitAlarm < 0)? 23 : menitAlarm--; 
+  }
+
+   if(mode == MODE_TIMER){
+    TIMER--;
+  }
+    Serial.println(F("down active"));
 }
 
 void click_select(){
-  
+  if(mode == MODE_SETTING){ lcd.clear(); cursorSelect = 0; mode = MODE_DEFAULT; subLayer=0;}
+  else if(mode == MODE_SETCLOCK ){lcd.clear(); cursorSelect = 0;  mode = MODE_SETTING; subLayer=0;}
+  else if(mode == MODE_ALARM1 ){ lcd.clear(); cursorSelect = 1; mode = MODE_SETTING; subLayer=0;}
+  else if(mode == MODE_TIMER ){ lcd.clear(); cursorSelect = 2; mode = MODE_SETTING; subLayer=0;}
+  Serial.println(F("back active"));
 }
 
 void clearChar(int charPosition, int line){
