@@ -14,7 +14,7 @@ OneButton UP(PIN_UP, true);
 OneButton DOWN(PIN_DOWN, true);
 OneButton SELECT(PIN_SELECT, true);
 
-#define SLEEP_TIME 15000
+//#define SLEEP_TIME 15000
 
 #define SCREEN_WIDTH 128 // OLED display width, in pixels
 #define SCREEN_HEIGHT 32 // OLED display height, in pixels
@@ -30,7 +30,6 @@ LiquidCrystal_I2C lcd(ADDRESS_LCD,16,2);  // set the LCD address to 0x27 for a 1
 roboEyes roboEyes; // create eyes
 
 enum Mode{
-  MODE_BLANK,
   MODE_DEFAULT,
   MODE_SETTING,
   MODE_SETCLOCK,
@@ -62,11 +61,11 @@ uint8_t detikAlarm;
 
 uint16_t suhu = 100;
 
-uint16_t TIMER = 2000;
+uint8_t TIMER = 2;
 
-char Alarm1[]={"12:00:00"};
-char Clock[]={"11:00:00"};
-char Date[]={"00-00-2000"};
+//char Alarm1[]={"12:00:00"};
+//char Clock[]={"11:00:00"};
+//char Date[]={"00-00-2000"};
 
 char *textAlarm[]={"OFF","ON "};
 
@@ -152,8 +151,8 @@ byte panah[8] = {
 };
 
 uint8_t cursorSelect = 0;
-uint8_t subLayer = 0;
-uint8_t currentLayer = 0;
+//uint8_t subLayer = 0;
+//uint8_t currentLayer = 0;
 
 void setup() {
   Serial.begin(115200);
@@ -198,11 +197,10 @@ void loop() {
   roboEyes.setAutoblinker(ON, 3, 2); // Start auto blinker animation cycle -> bool active, int interval, int variation -> turn on/off, set interval between each blink in full seconds, set range for random interval variation in full seconds
   roboEyes.setIdleMode(ON, 2, 2); // Start idle animation cycle (eyes looking in random directions) -> turn on/off, set interval between each eye repositioning in full seconds, set range for random time interval variation in full seconds
   roboEyes.setCuriosity(ON);
-  //sleep();
+  //sleep(TIMER*500);
 
   switch(mode){
-    case MODE_DEFAULT :
-      
+    case MODE_DEFAULT : 
       HOME();
     break;
 
@@ -223,31 +221,6 @@ void loop() {
     break;
   };
 
-  switch(tampilan){
-    case 0 :
-     // mode = MODE_BLANK;
-    break;
-    case 1 :
-      mode = MODE_DEFAULT;
-    break;
-
-    case 2 :
-      mode = MODE_SETTING;
-    break;
-  };
-
-//  switch(subLayer){
-//    case 0 :
-//      //mode = MODE_BLANK;
-//    break;
-//    case 1 :
-//      //lcd.clear();
-//      mode = MODE_SETCLOCK;
-//    break;
-//    case 2 :
-//      mode = MODE_ALARM1;
-//    break;
-//  };
   
   OK.tick();
   UP.tick();
@@ -258,7 +231,7 @@ void loop() {
 void HOME(){
   const char *Hari[] = {"MINGGU","SENIN","SELASA","RABU","KAMIS","JUM'AT","SABTU"};
   const char *pasar[] = {"WAGE", "KLIWON", "LEGI", "PAHING", "PON"}; 
-  const char text[] = "00:00";
+  const char buff_alarm[6];
   static uint8_t counter;
   static bool state;
   updateTime();
@@ -270,8 +243,9 @@ void HOME(){
 
   snprintf(buff_jam,sizeof(buff_jam),(detik & 1)?"%02d:%02d %s":"%02d %02d %s",jam,menit, (state)?Hari[hari+1]:pasar[jumlahhari() % 5]);
   snprintf(buff_date,sizeof(buff_date),"%02d-%02d-%04d" ,tanggal,bulan ,tahun);
+  snprintf(buff_alarm,sizeof(buff_alarm),"%02d:%02d",jamAlarm,menitAlarm);
 
- counter = textCount();
+ counter = textCount(2);
  
  switch(counter){
     case 0 :
@@ -284,18 +258,18 @@ void HOME(){
       lcd.write(byte(0));
       lcd.write(byte(4));
       lcd.write(byte(6));
-      lcd.print(text);
+      lcd.print(buff_alarm);
     break;
 
-    case 2 :
-      lcd.setCursor(0,1);
-      lcd.write(byte(0));
-      lcd.write(byte(5));
-      lcd.write(byte(6));
-      lcd.print(text);
-    break;
+//    case 2 :
+//      lcd.setCursor(0,1);
+//      lcd.write(byte(0));
+//      lcd.write(byte(5));
+//      lcd.write(byte(6));
+//      lcd.print(text);
+//    break;
   };
-  //Serial.println("counter:" + String(counter));
+  Serial.println("counter:" + String(counter));
   
   lcd.setCursor(0,0);
   lcd.print(buff_jam);
@@ -314,7 +288,7 @@ void HOME(){
 }
 
 // Fungsi untuk scrolling teks hanya di kolom 0-10
-int textCount() {
+int textCount(uint8_t limit) {
   uint16_t currentMillis = millis();
 
   static uint8_t counter ;
@@ -325,7 +299,7 @@ int textCount() {
   if (currentMillis - previousScrollMillis >= scrollInterval) {
     previousScrollMillis = currentMillis;
     
-    counter = (counter + 1) % 3;
+    counter = (counter + 1) % limit;
   }
   
   if(counter != last){
@@ -519,21 +493,6 @@ void ALARM1(){
   lcd.print(menitAlarm<10?"0" + String(menitAlarm):String(menitAlarm));
   }
 
-//  if(cursorSelect==3 ){
-//  lcd.setCursor(12,1);
-//  if(state) lcd.print("save");
-//  else lcd.print("    ");
-//  }else{
-//  lcd.setCursor(12,1);
-//  lcd.print("save");
-//  }
-
-//  lcd.setCursor(13,0);
-//  lcd.print(textAlarm[0]);
-//  lcd.setCursor(0,1);
-//  lcd.print(Alarm1);
-//  lcd.setCursor(12,1);
-//  lcd.print("save");
 }
 
 void SET_TIMER(){
@@ -554,11 +513,10 @@ void SET_TIMER(){
   lcd.setCursor(0,1);
   lcd.print("timer:");
   if(cursorSelect==1 ){
-  if(state) lcd.print(TIMER) ; 
+  if(state) lcd.print(TIMER*500) ; 
   else lcd.print("    ");
   }else{
-  //lcd.setCursor(0,1);
-  lcd.print(TIMER);
+  lcd.print(TIMER*500);
   }
 }
 
@@ -574,7 +532,7 @@ void updateTime(){
   hari    = weekday();
 }
 
-void sleep(){
+void sleep(uint8_t SLEEP_TIME ){
  static uint32_t lastActivityTime;
  static bool isSleeping = false;
 
@@ -602,13 +560,13 @@ void sleep(){
 
 void click_ok(){
   
-  if(mode == MODE_DEFAULT){tampilan=0; lcd.clear(); mode = MODE_SETTING;}//clearMenu();
-  else if(mode == MODE_SETTING && cursorSelect == 0){lcd.clear(); cursorSelect=0; subLayer = 1; mode = MODE_SETCLOCK;}
-  else if(mode == MODE_SETTING && cursorSelect == 1){lcd.clear(); cursorSelect=0; subLayer = 2; mode = MODE_ALARM1;}
-  else if(mode == MODE_SETTING && cursorSelect == 2){lcd.clear(); cursorSelect=0; subLayer = 3; mode = MODE_TIMER;}
-  else if(mode == MODE_SETCLOCK){ cursorSelect++; }//(cursorSelect+1) % 6; }
-  else if(mode == MODE_ALARM1){ cursorSelect++; }
-  //else if(mode == MODE_TIMER){ TIMER++; }
+  if(mode == MODE_DEFAULT){ lcd.clear(); mode = MODE_SETTING;}//clearMenu();
+  else if(mode == MODE_SETTING && cursorSelect == 0){lcd.clear(); cursorSelect=0;  mode = MODE_SETCLOCK;}
+  else if(mode == MODE_SETTING && cursorSelect == 1){lcd.clear(); cursorSelect=0;  mode = MODE_ALARM1;}
+  else if(mode == MODE_SETTING && cursorSelect == 2){lcd.clear(); cursorSelect=0;  mode = MODE_TIMER;}
+  else if(mode == MODE_SETCLOCK){ cursorSelect = ( cursorSelect + 1 ) % 5 ; }
+  else if(mode == MODE_ALARM1){ cursorSelect = ( cursorSelect + 1 ) % 3 ; }
+  else if(mode == MODE_TIMER){ cursorSelect = ( cursorSelect + 1 ) % 2 ; }
   Serial.println("mode:" + String(mode));
 }
 
@@ -616,9 +574,9 @@ void click_up(){
 //  sleepActive=true;
 //  Serial.println(F("button active"));
   if(mode == MODE_SETTING){ 
-    //clearSelect();
+    
     if(cursorSelect>0){lcd.clear(); cursorSelect--;} 
-    Serial.println("cursorSelect:" + String(cursorSelect));
+    
   }
   //////mode set jam
   if(mode == MODE_SETCLOCK  && cursorSelect == 0){
@@ -648,19 +606,23 @@ void click_up(){
     menitAlarm = (menitAlarm + 1) % 60;
   }
 
-  if(mode == MODE_TIMER){
+  if(mode == MODE_TIMER && cursorSelect == 0){
+    stateTimer = true;
+  }
+  else if(mode == MODE_TIMER && cursorSelect == 1){
     TIMER++;
   }
 
     Serial.println(F("up active"));
+    Serial.println("cursorSelect:" + String(cursorSelect));
 }
 
 void click_down(){
   if(mode == MODE_SETTING ){ 
-    //clearSelect ();
+    
     if(cursorSelect < 2){lcd.clear(); cursorSelect++;} 
     
-    Serial.println("cursorSelect:" + String(cursorSelect));
+    //Serial.println("cursorSelect:" + String(cursorSelect));
   }
 
   //mode set jam
@@ -691,17 +653,21 @@ void click_down(){
     (menitAlarm < 0)? 23 : menitAlarm--; 
   }
 
-   if(mode == MODE_TIMER){
+  if(mode == MODE_TIMER && cursorSelect == 0){
+    stateTimer = false;
+  }
+   if(mode == MODE_TIMER && cursorSelect == 1){
     TIMER--;
   }
     Serial.println(F("down active"));
+    Serial.println("cursorSelect:" + String(cursorSelect));
 }
 
 void click_select(){
-  if(mode == MODE_SETTING){ lcd.clear(); cursorSelect = 0; mode = MODE_DEFAULT; subLayer=0;}
-  else if(mode == MODE_SETCLOCK ){lcd.clear(); cursorSelect = 0;  mode = MODE_SETTING; subLayer=0;}
-  else if(mode == MODE_ALARM1 ){ lcd.clear(); cursorSelect = 1; mode = MODE_SETTING; subLayer=0;}
-  else if(mode == MODE_TIMER ){ lcd.clear(); cursorSelect = 2; mode = MODE_SETTING; subLayer=0;}
+  if(mode == MODE_SETTING){ lcd.clear(); cursorSelect = 0; mode = MODE_DEFAULT; }
+  else if(mode == MODE_SETCLOCK ){lcd.clear(); cursorSelect = 0;  mode = MODE_SETTING; ;}
+  else if(mode == MODE_ALARM1 ){ lcd.clear(); cursorSelect = 1; mode = MODE_SETTING; }
+  else if(mode == MODE_TIMER ){ lcd.clear(); cursorSelect = 2; mode = MODE_SETTING; }
   Serial.println(F("back active"));
 }
 
