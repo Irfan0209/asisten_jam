@@ -62,6 +62,7 @@ uint8_t detikAlarm;
 uint16_t suhu = 100;
 
 uint8_t TIMER = 2;
+uint8_t cursorSelect = 0;
 
 //char Alarm1[]={"12:00:00"};
 //char Clock[]={"11:00:00"};
@@ -150,9 +151,7 @@ byte panah[8] = {
   B00000,
 };
 
-uint8_t cursorSelect = 0;
-//uint8_t subLayer = 0;
-//uint8_t currentLayer = 0;
+
 
 void setup() {
   Serial.begin(115200);
@@ -186,13 +185,8 @@ void setup() {
   SELECT.attachClick(click_select);
 }
 
-uint8_t tampilan=1;
-//uint8_t select;
-bool flagSelect=false;
-
 void loop() {
   roboEyes.update(); // update eyes drawings
-  
   
   roboEyes.setAutoblinker(ON, 3, 2); // Start auto blinker animation cycle -> bool active, int interval, int variation -> turn on/off, set interval between each blink in full seconds, set range for random interval variation in full seconds
   roboEyes.setIdleMode(ON, 2, 2); // Start idle animation cycle (eyes looking in random directions) -> turn on/off, set interval between each eye repositioning in full seconds, set range for random time interval variation in full seconds
@@ -245,9 +239,9 @@ void HOME(){
   snprintf(buff_date,sizeof(buff_date),"%02d-%02d-%04d" ,tanggal,bulan ,tahun);
   snprintf(buff_alarm,sizeof(buff_alarm),"%02d:%02d",jamAlarm,menitAlarm);
 
- counter = textCount(2);
+  counter = textCount(2);
  
- switch(counter){
+  switch(counter){
     case 0 :
      lcd.setCursor(0,1);
      lcd.print(buff_date);
@@ -260,16 +254,8 @@ void HOME(){
       lcd.write(byte(6));
       lcd.print(buff_alarm);
     break;
-
-//    case 2 :
-//      lcd.setCursor(0,1);
-//      lcd.write(byte(0));
-//      lcd.write(byte(5));
-//      lcd.write(byte(6));
-//      lcd.print(text);
-//    break;
   };
-  Serial.println("counter:" + String(counter));
+  //Serial.println("counter:" + String(counter));
   
   lcd.setCursor(0,0);
   lcd.print(buff_jam);
@@ -287,7 +273,7 @@ void HOME(){
   
 }
 
-// Fungsi untuk scrolling teks hanya di kolom 0-10
+// 
 int textCount(uint8_t limit) {
   uint16_t currentMillis = millis();
 
@@ -336,12 +322,7 @@ int stateDay(){
 
 
 void SETTING(){
-//     lcd.setCursor(15,cursorSelect ); 
-//     lcd.write(byte(6));
-//     lcd.setCursor(0,0);
-//     lcd.print("ATUR JAM");
-//     lcd.setCursor(0,1);
-//     lcd.print("ATUR ALARM");
+
      switch(cursorSelect){
       case 0 :
         lcd.setCursor(15,0 ); 
@@ -432,27 +413,6 @@ if(cursorSelect==4 ){
   lcd.print(setTahun<10?"0" + String(setTahun):String(setTahun));
 }
 
-//if(cursorSelect==5 ){
-//  lcd.setCursor(12,1);
-//  if(state) lcd.print(stateSave);
-//  else lcd.print("    ");
-//}else{
-//  lcd.setCursor(12,1);
-//  lcd.print(stateSave);
-//}
-
-}
-
-int blinkText(){
-  static uint32_t save;
-  static bool state = false;
-  //uint32_t tmr = millis();
-
-  if(millis() - save > 1000){
-    save = millis();
-    state = !state;
-  }
-  return state;
 }
 
 void ALARM1(){
@@ -463,34 +423,34 @@ void ALARM1(){
   lcd.print("ALARM 1: ");
 
   if(cursorSelect==0 ){
-  lcd.setCursor(13,0);
-  if(state) lcd.print(textAlarm[stateAlarm1]) ; 
-  else lcd.print("    ");
+    lcd.setCursor(13,0);
+    if(state) lcd.print(textAlarm[stateAlarm1]) ; 
+    else lcd.print("    ");
   }else{
-  lcd.setCursor(13,0);
-  lcd.print(textAlarm[stateAlarm1]);
+    lcd.setCursor(13,0);
+    lcd.print(textAlarm[stateAlarm1]);
   }
   
   
   if(cursorSelect==1 ){
-  lcd.setCursor(0,1);
-  if(state) lcd.print(jamAlarm<10?"0" + String(jamAlarm):String(jamAlarm));
-  else lcd.print("  ");
+    lcd.setCursor(0,1);
+    if(state) lcd.print(jamAlarm<10?"0" + String(jamAlarm):String(jamAlarm));
+    else lcd.print("  ");
   }else{
-  lcd.setCursor(0,1);
-  lcd.print(jamAlarm<10?"0" + String(jamAlarm):String(jamAlarm));
+    lcd.setCursor(0,1);
+    lcd.print(jamAlarm<10?"0" + String(jamAlarm):String(jamAlarm));
   }
 
   lcd.setCursor(2,1);
   lcd.print(":");
   
   if(cursorSelect==2 ){
-  lcd.setCursor(3,1);
-  if(state) lcd.print(menitAlarm<10?"0" + String(menitAlarm):String(menitAlarm));
-  else lcd.print("  ");
+    lcd.setCursor(3,1);
+    if(state) lcd.print(menitAlarm<10?"0" + String(menitAlarm):String(menitAlarm));
+    else lcd.print("  ");
   }else{
-  lcd.setCursor(3,1);
-  lcd.print(menitAlarm<10?"0" + String(menitAlarm):String(menitAlarm));
+    lcd.setCursor(3,1);
+    lcd.print(menitAlarm<10?"0" + String(menitAlarm):String(menitAlarm));
   }
 
 }
@@ -502,23 +462,24 @@ void SET_TIMER(){
   lcd.print("SET TIMER: ");
   
   if(cursorSelect==0 ){
-  lcd.setCursor(13,0);
-  if(state) lcd.print(textAlarm[stateTimer]) ; 
-  else lcd.print("    ");
+    lcd.setCursor(13,0);
+    if(state) lcd.print(textAlarm[stateTimer]) ; 
+    else lcd.print("    ");
   }else{
-  lcd.setCursor(13,0);
-  lcd.print(textAlarm[stateTimer]);
+    lcd.setCursor(13,0);
+    lcd.print(textAlarm[stateTimer]);
   }
 
   lcd.setCursor(0,1);
   lcd.print("timer:");
   if(cursorSelect==1 ){
-  if(state) lcd.print(TIMER*500) ; 
-  else lcd.print("    ");
+    if(state) lcd.print(TIMER*500) ; 
+    else lcd.print("    ");
   }else{
-  lcd.print(TIMER*500);
+    lcd.print(TIMER*500);
   }
 }
+
 
 void updateTime(){
   jam   = hour();
@@ -531,6 +492,7 @@ void updateTime(){
 
   hari    = weekday();
 }
+
 
 void sleep(uint8_t SLEEP_TIME ){
  static uint32_t lastActivityTime;
@@ -557,6 +519,19 @@ void sleep(uint8_t SLEEP_TIME ){
   }
   
 }
+
+int blinkText(){
+  static uint32_t save;
+  static bool state = false;
+  //uint32_t tmr = millis();
+
+  if(millis() - save > 1000){
+    save = millis();
+    state = !state;
+  }
+  return state;
+}
+
 
 void click_ok(){
   
@@ -670,6 +645,7 @@ void click_select(){
   else if(mode == MODE_TIMER ){ lcd.clear(); cursorSelect = 2; mode = MODE_SETTING; }
   Serial.println(F("back active"));
 }
+
 
 void clearChar(int charPosition, int line){
   lcd.setCursor (charPosition,line);
